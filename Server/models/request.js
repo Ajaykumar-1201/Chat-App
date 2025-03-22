@@ -8,10 +8,10 @@ const schema = new Schema(
       default: "pending",
     },
     sender: { type: Types.ObjectId, ref: "User", required: true },
-    reciever: { type: Types.ObjectId, ref: "User", required: true },
+    receiver: { type: Types.ObjectId, ref: "User", required: true },
   },
   {
-    timestamps: true,
+    timestamps: true, 
   }
 );
 

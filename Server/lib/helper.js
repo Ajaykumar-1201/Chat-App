@@ -8,5 +8,14 @@ export const getSockets = (users = []) => {
   return sockets;
 };
 
-export const getBase64 = (file) =>
-  `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+export const getBase64 = (file) => {
+  if (file && file.buffer && Buffer.isBuffer(file.buffer)) {
+    const base64String = file.buffer.toString("base64");
+    console.log("Base64 String:", base64String);  // Check the base64 result
+    return `data:${file.mimetype};base64,${base64String}`;
+  } else {
+    console.error("Invalid buffer:", file.buffer);
+    return null;
+  }
+};
+

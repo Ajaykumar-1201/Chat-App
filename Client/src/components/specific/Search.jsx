@@ -5,32 +5,55 @@ import {
   InputAdornment,
   List,
   Stack,
-  TextField
+  TextField,
 } from "@mui/material";
-import React, { useState } from "react";
-import { sampleUsers } from "../../constants/sampleData";
+import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useAsyncMutation } from "../../hooks/hook";
+import {
+  useLazySearchUserQuery,
+  useSendFriendRequestMutation,
+} from "../../redux/api/api";
+import { setIsSearch } from "../../redux/reducers/misc";
 import UserItem from "../shared/UserItem";
 
 const Search = () => {
-  const [Search, setSearch] = useState("");
-  const [users, setUsers] = useState(sampleUsers);
-  const addFriendHAndler = (id) => {
-    console.log(id);
+  const [search, setSearch] = useState("");
+  const { isSearch } = useSelector((state) => state.misc);
+  const [searchUser] = useLazySearchUserQuery();
+  const [sendFriendRequest, isLoadingSendFriendRequest] = useAsyncMutation(
+    useSendFriendRequestMutation
+  );
+  const [users, setUsers] = useState([]);
+
+  const addFriendHandler = async (id) => {
+    await sendFriendRequest("Sending friend request...", { userId: id });
   };
-  let isLoadingSendFriendRequest = false;
+
+  const searchCloseHandler = () => dispatchEvent(setIsSearch(false));
+
   const changeHandler = (e) => {
-    const searchText = e.target.value;
-    setSearch(searchText);
-    const isValid = searchValidator(searchText);
+    // console.log(search)
+    setSearch(e.target.value);
   };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      searchUser(search)
+        .then(({ data }) => setUsers(data.users))
+        .catch((e) => console.log(e));
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [search]);
+
   return (
     <Dialog open>
       <Stack p={"2rem"} direction={"column"} width={"25rem"}>
         <DialogTitle textAlign={"center"}>Find People</DialogTitle>
         <TextField
           label=""
-          value={Search}
-          onChange={changeHandler}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           variant="outlined"
           size="small"
           InputProps={{
@@ -46,7 +69,7 @@ const Search = () => {
             <UserItem
               user={user}
               key={user._id}
-              handler={addFriendHAndler}
+              handler={addFriendHandler}
               handlerIsLoading={isLoadingSendFriendRequest}
             />
           ))}

@@ -7,8 +7,10 @@ import { User } from "../models/user.js";
 
 const isAuthenticated = tryCatch((req, res, next) => {
   const token = req.cookies[CHATTU_TOKEN];
-  if (!token)
+  if (!token) {
     return next(new ErrorHandler("Please login to access this route", 401));
+  }
+  console.log(token)
 
   const decodedData = jwt.verify(token, process.env.JWT_SECRET);
 

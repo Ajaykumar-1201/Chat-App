@@ -1,4 +1,12 @@
 import {
+  Add as AddIcon,
+  Group as GroupIcon,
+  Logout as LogoutIcon,
+  Menu as MenuIcon,
+  Notifications as NotificationsIcon,
+  Search as SearchIcon,
+} from "@mui/icons-material/";
+import {
   AppBar,
   Backdrop,
   Box,
@@ -8,16 +16,14 @@ import {
   Typography,
 } from "@mui/material";
 import React, { Suspense, lazy, useState } from "react";
-import { orange } from "../../constants/color";
-import {
-  Add as AddIcon,
-  Group as GroupIcon,
-  Menu as MenuIcon,
-  Search as SearchIcon,
-  Logout as LogoutIcon,
-  Notifications as NotificationsIcon,
-} from "@mui/icons-material/";
 import { useNavigate } from "react-router-dom";
+import { orange } from "../../constants/color";
+import axios from "axios";
+import { server } from "../../constants/config";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { userNotExists } from "../../redux/reducers/auth";
+import { setIsMobile } from "../../redux/reducers/misc";
 
 const SearchDialog = lazy(() => import("../specific/Search"));
 const NotificationsDialog = lazy(() => import("../specific/Notifications"));
@@ -25,16 +31,13 @@ const NewGroupDialog = lazy(() => import("../specific/NewGroup"));
 
 const Header = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [isMobile, setIsMobile] = useState(false);
   const [isSearch, setIsSearch] = useState(false);
   const [isNewGroup, setIsNewGroup] = useState(false);
   const [isNotification, setIsNotification] = useState(false);
 
-  const handleMobile = () => {
-    setIsMobile((prev) => !prev);
-  };
-
+  const handleMobile = () => dispatch(setIsMobile(true));
   const openSearch = () => {
     setIsSearch((prev) => !prev);
   };
@@ -49,10 +52,17 @@ const Header = () => {
 
   const navigateToGroup = () => navigate("/groups");
 
-  const handleLogout = () => {
-    // Handle logout
-    console.log("Logout");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // navigate("/login");
+      const { data } = await axios.get(`${server}/api/v1/user/logout`, {
+        withCredentials: true,
+      });
+      dispatch(userNotExists());
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Something went wrong");
+    }
   };
   return (
     <>

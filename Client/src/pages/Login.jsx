@@ -1,39 +1,113 @@
-import React, { useState } from "react";
+import { CameraAlt as CameraAltIcon } from "@mui/icons-material";
 import {
+  Avatar,
+  Button,
   Container,
+  IconButton,
   Paper,
+  Stack,
   TextField,
   Typography,
-  Button,
-  Stack,
-  Avatar,
-  IconButton,
 } from "@mui/material";
-import { CameraAlt as CameraAltIcon } from "@mui/icons-material";
+import axios from "axios";
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
 import { VisuallyHiddenInput } from "../components/styles/StyledComponents";
-import { passwordValidator, usernameValidator } from "../utils/validators";
 import { bgGradient } from "../constants/color";
+import { server } from "../constants/config";
+import { userExists } from "../redux/reducers/auth";
+import { passwordValidator, usernameValidator } from "../utils/validators";
 
 function Login() {
   const [isLogin, setIsLogin] = useState(true);
-  const [bio, setBio] = useState("");
+
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
   const [confirmPassword, setConfirmPassword] = useState("");
   const [userNameerror, setuserNameerror] = useState("");
   const [passwordError, setpasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [imageError, setImageError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => setIsLogin((prev) => !prev);
+  const dispatch = useDispatch();
+
+  const toggleLogin = () => setIsLogin((prev) => !prev);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const config = {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    //25:04 / 8:49:57
+    try {
+      const { data } = await axios.post(
+        `${server}/api/v1/user/login`,
+        {
+          username: username,
+          password: password,
+        },
+        config
+      );
+      console.log(data);
+      dispatch(userExists(true));
+      toast.success(data.message);
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || "Something went Wrong");
+    }
+  };
+
+  const handleRegistration = async (e) => {
+    e.preventDefault();
+
+    const toastId = toast.loading("Signing Up...");
+    setIsLoading(true);
+
+    const formData = new FormData();
+    formData.append("avatar", imageFile);
+    formData.append("name", name);
+    formData.append("username", username);
+    formData.append("password", password);
+    formData.append("bio", bio);
+
+    const config = {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    };
+    try {
+      const { data } = await axios.post(
+        `${server}/api/v1/user/new`,
+        formData,
+        config
+      );
+      dispatch(userExists(true));
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Something went Wrong");
+    } finally {
+      setIsLoading(false);
+      toast.dismiss(toastId);
+    }
+  };
 
   const handleUsernameChange = (e) => {
     const newUsername = e.target.value;
     setUsername(newUsername);
 
     const validation = usernameValidator(newUsername);
+    console.log(validation);
     if (!validation.isValid) {
       setuserNameerror(validation.message);
     } else {
@@ -67,32 +141,17 @@ function Login() {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        setImageError("Please select a valid image file.");
-        return;
-      }
-
-      // Validate file size (e.g., max 2MB)
-      const maxSizeInMB = 2;
-      const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
-      if (file.size > maxSizeInBytes) {
-        setImageError(`File size should not exceed ${maxSizeInMB}MB.`);
-        return;
-      }
-
-      // Clear previous errors
-      setImageError("");
-
-      // Convert the image file to a data URL for display
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return (error = "No files selected.");
+    const limitInMb = 2;
+    const maxSize = limitInMb * 1024 * 1024;
+    if (file.size > maxSize) {
+      setImageError(`File size should not exceed ${maxSizeInMB}MB.`);
+      return;
     }
+
+    setImageError("");
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   return (
@@ -134,6 +193,8 @@ function Login() {
                   label="Username"
                   margin="normal"
                   variant="outlined"
+                  value={username}
+                  onChange={handleUsernameChange}
                 />
                 <TextField
                   required
@@ -142,6 +203,8 @@ function Login() {
                   label="Password"
                   margin="normal"
                   type="password"
+                  value={password}
+                  onChange={handlePasswordChange}
                 />
                 <Button
                   type="submit"
@@ -155,12 +218,7 @@ function Login() {
                 <Typography textAlign={"center"} m={"1rem"}>
                   OR
                 </Typography>
-                <Button
-                  type="button"
-                  variant="text"
-                  fullWidth
-                  onClick={handleLogin}
-                >
+                <Button variant="text" fullWidth onClick={toggleLogin}>
                   Sign Up Instead
                 </Button>
               </form>
@@ -175,7 +233,7 @@ function Login() {
                     height: "10rem",
                     objectFit: "contain",
                   }}
-                  src={image || ""}
+                  src={imagePreview || ""}
                 ></Avatar>
 
                 <IconButton
@@ -204,7 +262,10 @@ function Login() {
               {imageError && (
                 <Typography color="error">{imageError}</Typography>
               )}
-              <form style={{ width: "100%", marginTop: "1rem" }}>
+              <form
+                style={{ width: "100%", marginTop: "1rem" }}
+                onSubmit={handleRegistration}
+              >
                 <TextField
                   required
                   fullWidth
@@ -279,12 +340,7 @@ function Login() {
                 <Typography textAlign={"center"} m={"1rem"}>
                   OR
                 </Typography>
-                <Button
-                  type="button"
-                  variant="text"
-                  fullWidth
-                  onClick={handleLogin}
-                >
+                <Button variant="text" fullWidth onClick={toggleLogin}>
                   Login Instead
                 </Button>
               </form>

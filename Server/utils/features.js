@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
@@ -14,7 +13,7 @@ const cookieOptions = {
 
 const connectDB = (uri) => {
   mongoose
-    .connect(uri, { dbName: "Chattu" })
+    .connect(uri, { dbName: "ChatApplication" })
     .then((data) => console.log(`Connected to DB: ${data.connection.host}`))
     .catch((err) => {
       throw err;
@@ -33,7 +32,7 @@ const sendToken = (res, user, code, message) => {
 
 const emitEvent = (req, event, users, data) => {
   const io = req.app.get("io");
-  // const usersSocket = getSockets(users);
+  const usersSocket = getSockets(users);
   io.to(usersSocket).emit(event, data);
 };
 

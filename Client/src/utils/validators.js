@@ -39,5 +39,5 @@ export const searchValidator = (text) => {
         "Username is invalid. It should contain only letters and numbers.",
     };
   }
-  return { isValid: true, message: "" }; 
-}
+  return { isValid: true, message: "" };
+};
